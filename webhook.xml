@@ -1,0 +1,45 @@
+header('Content-type:application/json;charset=utf-8');
+include __DIR__.'/vendor/autoload.php';
+# удал€ем сессию если она к нам придет
+if(isset($_COOKIE[session_name()])){ 
+	unset($_COOKIE[session_name()]); 
+}
+$in = new \alexstar\JsonMaker(file_get_contents('php://input'));
+$out = new \alexstar\JsonMaker();
+$out->version = '1.0';//$in->version;
+$out->response->end_session = false;
+$out->session->session_id = $in->session->session_id;
+$out->session->message_id = $in->session->message_id;
+$out->session->user_id = $in->session->user_id;
+if (session_status() != PHP_SESSION_ACTIVE) {
+	# «апускаем сессию
+	session_id(md5('Sol'.$in->session->session_id . $in->session->skill_id));
+	session_start();
+}
+# в сессии храним переменную $_SESSION['intro'] если значение 0 то говорим приветствие
+if(empty($_SESSION['intro']))$_SESSION['intro']=0;
+
+if($in->request->command=='выход' || $in->request->command=='¬ыход'){
+	# ответ
+	$out->response->text = "¬сего доброго, заходите еще!";
+	# «вук закрывающейс€ двери
+	$out->response->tts ='<speaker audio="alice-sounds-things-door-2.opus"> ¬сего доброго, заходите еще!';
+	# говорим что нужно закрыть диалог
+	$out->response->end_session = true;
+}elseif($in->request->command=='что ты умеешь'|| $in->request->command=='чего ты умеешь' ){
+	$out->response->text = "я умею повтор€ть всЄ, что вы скажите, дл€ выхода из навыка произнесите выход";
+}elseif($in->request->command=='помощь' || $in->request->command=='ѕомощь'){
+	$out->response->text = "Ќавык повтор€ет всЄ, что вы говорите, дл€ выхода из навыка произнесите выход";
+}
+else{	
+	if($_SESSION['intro']===0){
+ 		# можно было не  использовать сессии потому, как при запуске навыка приходит пуста€ строка и по ней можно судить что навык только запустили
+		# ѕриветствие 
+		$_SESSION['intro']++;
+		$out->response->text = "я хом€к повторюшка, всЄ что вы скажите € буду повтор€ть, дл€ выхода из навыка произнесите выход";
+	}else {
+		# отвечаем  пользователю его фразой
+		$out->response->text = $in->request->command;
+	}
+}
+echo $out;
